@@ -129,7 +129,11 @@ package` repeatedly.
 ## Native compilation
 
 If GraalVM, or an equivalent, is installed, this application can be compiled
-to a native executable, and will run without a JVM. The Quarkus maintainers
+to a native executable, and will run without a JVM. Alternatively, if you
+have Docker or Podman, enable container builds, to run GraalVM in a container
+(see "OpenShift" section below).
+
+For local GraalVM builds, the Quarkus maintainers
 now recommend Mandrel for compiling Quarkus to native code:
 https://github.com/graalvm/mandrel/releases.
 
@@ -164,6 +168,33 @@ The agent writes a file in the output directory called
 for annotation the relevant classes, or just include the whole
 thing in the build (see the Quarkus documentation).
 
+## Deployment on OpenShift
+
+The `pom.xml` includes the `quarkus-openshift` dependency, so deploying the
+Java version of `quarkus-suntimes` should be as simple as:
+
+    mvn clean package -Dquarkus.kubernetes.deploy=true -Dquarkus.package.type=jar
+
+You'll need to `oc login` first, and probably `oc project`, as the deployment will
+be to the default namespace. The deployment will create a deployment
+configuration, a service, and a route. 
+
+The switch `quarkus.package.type=jar` is needed because the 
+`application.properties` file specifies `uber-jar`. The uber-JAR method
+won't work, because it won't leave compiled JARs in the directories
+where the OpenShift plug-in looks for them.
+
+To deploy the natively-compiled version to OpenShift, you'll need to build
+the application in a container, using Podman or Docker. To do this:
+
+    mvn clean package -Pnative -Dquarkus.kubernetes.deploy=true \
+      -Dquarkus.native.container-build=true \ 
+      -Dquarkus.native.container-runtime=podman|docker
+
+The `container-runtime` setting should be `podman` or `docker`, according to
+which of these container frameworks are installed on the build
+host. See the further notes below.
+
 ## Notes
 
 1. _Native compilation_. This radically reduces start-up time, but we cannot 
@@ -177,4 +208,18 @@ projects over the last twenty years, and it's worked well. However, this
 is just a demonstration program -- please don't rely on it for 
 ocean navigation or anything like that.
  
+3. _Native deployment on OpenShift_. The Quarkus application can be compiled
+to native code using a local installation of GraalVM, or using a container
+build. A container build is probably safer, because it will build a binary
+that has the same platform dependencies as the base image that will be
+used to generate the final container image. This is important because
+otherwise you will have to base the container image on a base image
+that matches the libraries installed on the build host.
+
+That's not necessarily a problem. There is a sample `Dockerfile` in the
+root directory of this bundle, that will build a container that 
+matches my build host, which uses Fedora 35. So it specifies 
+`fedora-minimal:35` as the base image. Another build host will 
+require a different base image. That's why it's probably easiest to
+specify an in-container build if you plan to deploy on OpenShift.
 

@@ -1,5 +1,7 @@
 # Build file for Docker/Podman for building an image from the native
-#   binary version of quarkus-suntimes.
+#   binary version of quarkus-suntimes. This is provided only
+#   for illustration -- a build for OpenShift will use the Dockerfiles
+#   in src/main/docker.
 
 # We must select a base image that is a reasonable match for the machine
 #   where the native executable was compiled. Specifically, the GLibC
